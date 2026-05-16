@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("qrcafe_staff")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1f930b42f20c8eb43d49bfb695022aac43c4ff86")]
 [assembly: System.Reflection.AssemblyProductAttribute("qrcafe_staff")]
 [assembly: System.Reflection.AssemblyTitleAttribute("qrcafe_staff")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -3,16 +3,16 @@
   "WorkspaceRootPath": "C:\\Users\\dhill\\source\\repos\\qrcafe_staff\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{79C40BC9-D666-49AB-9E57-E6B7CCE78B23}|qrcafe_staff\\qrcafe_staff.csproj|c:\\users\\dhill\\source\\repos\\qrcafe_staff\\qrcafe_staff\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{79C40BC9-D666-49AB-9E57-E6B7CCE78B23}|qrcafe_staff\\qrcafe_staff.csproj|solutionrelative:qrcafe_staff\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{3F1DC9BC-E0DB-7AD6-7974-B987A55A9109}|qrcafe_staff\\qrcafe_staff.csproj|c:\\users\\dhill\\source\\repos\\qrcafe_staff\\qrcafe_staff\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{3F1DC9BC-E0DB-7AD6-7974-B987A55A9109}|qrcafe_staff\\qrcafe_staff.csproj|solutionrelative:qrcafe_staff\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{79C40BC9-D666-49AB-9E57-E6B7CCE78B23}|qrcafe_staff\\qrcafe_staff.csproj|c:\\users\\dhill\\source\\repos\\qrcafe_staff\\qrcafe_staff\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{79C40BC9-D666-49AB-9E57-E6B7CCE78B23}|qrcafe_staff\\qrcafe_staff.csproj|solutionrelative:qrcafe_staff\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+      "AbsoluteMoniker": "D:0:0:{3F1DC9BC-E0DB-7AD6-7974-B987A55A9109}|qrcafe_staff\\qrcafe_staff.csproj|c:\\users\\dhill\\source\\repos\\qrcafe_staff\\qrcafe_staff\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3F1DC9BC-E0DB-7AD6-7974-B987A55A9109}|qrcafe_staff\\qrcafe_staff.csproj|solutionrelative:qrcafe_staff\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{79C40BC9-D666-49AB-9E57-E6B7CCE78B23}|qrcafe_staff\\qrcafe_staff.csproj|c:\\users\\dhill\\source\\repos\\qrcafe_staff\\qrcafe_staff\\qrcafe_staff.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{79C40BC9-D666-49AB-9E57-E6B7CCE78B23}|qrcafe_staff\\qrcafe_staff.csproj|solutionrelative:qrcafe_staff\\qrcafe_staff.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+      "AbsoluteMoniker": "D:0:0:{3F1DC9BC-E0DB-7AD6-7974-B987A55A9109}|qrcafe_staff\\qrcafe_staff.csproj|c:\\users\\dhill\\source\\repos\\qrcafe_staff\\qrcafe_staff\\qrcafe_staff.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{3F1DC9BC-E0DB-7AD6-7974-B987A55A9109}|qrcafe_staff\\qrcafe_staff.csproj|solutionrelative:qrcafe_staff\\qrcafe_staff.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
     }
   ],
   "DocumentGroupContainers": [
@@ -22,11 +22,11 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 1,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\dhill\\source\\repos\\qrcafe_staff\\qrcafe_staff\\Program.cs",
               "RelativeDocumentMoniker": "qrcafe_staff\\Program.cs",
@@ -39,13 +39,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "appsettings.json",
               "DocumentMoniker": "C:\\Users\\dhill\\source\\repos\\qrcafe_staff\\qrcafe_staff\\appsettings.json",
               "RelativeDocumentMoniker": "qrcafe_staff\\appsettings.json",
               "ToolTip": "C:\\Users\\dhill\\source\\repos\\qrcafe_staff\\qrcafe_staff\\appsettings.json",
               "RelativeToolTip": "qrcafe_staff\\appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAABJAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
               "WhenOpened": "2026-05-16T01:22:48.587Z",
               "EditorCaption": ""
@@ -53,15 +53,14 @@
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "qrcafe_staff",
+              "Title": "qrcafe_staff.csproj",
               "DocumentMoniker": "C:\\Users\\dhill\\source\\repos\\qrcafe_staff\\qrcafe_staff\\qrcafe_staff.csproj",
               "RelativeDocumentMoniker": "qrcafe_staff\\qrcafe_staff.csproj",
               "ToolTip": "C:\\Users\\dhill\\source\\repos\\qrcafe_staff\\qrcafe_staff\\qrcafe_staff.csproj",
               "RelativeToolTip": "qrcafe_staff\\qrcafe_staff.csproj",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAZAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-05-16T01:21:26.57Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-05-16T01:21:26.57Z"
             }
           ]
         }
