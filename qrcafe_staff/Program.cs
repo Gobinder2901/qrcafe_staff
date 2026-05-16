@@ -1,11 +1,10 @@
 using MySql.Data.MySqlClient;
-using System.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ============================================
+// ======================================================
 // CORS
-// ============================================
+// ======================================================
 
 builder.Services.AddCors(options =>
 {
@@ -21,27 +20,36 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 
-string connStr = builder.Configuration.GetConnectionString("MySql")!;
+// ======================================================
+// CONNECTION STRING
+// ======================================================
 
-// ============================================
-// HEALTH
-// ============================================
+string connStr =
+    builder.Configuration.GetConnectionString("MySql")!;
+
+// ======================================================
+// HEALTH CHECK
+// ======================================================
 
 app.MapGet("/api/health", () =>
 {
     return Results.Ok(new
     {
-        status = "POS API RUNNING",
+        success = true,
+        message = "QRCAFE STAFF POS API RUNNING",
         time = DateTime.Now
     });
 });
 
-// ============================================
+// ======================================================
 // LIVE DASHBOARD
-// ============================================
+// ======================================================
 
-app.MapGet("/api/dashboard/live/{branchId}", async (int branchId) =>
+app.MapGet("/api/dashboard/live/{branchId}", async (
+    int branchId) =>
 {
+    var list = new List<object>();
+
     using var con = new MySqlConnection(connStr);
 
     await con.OpenAsync();
@@ -49,18 +57,19 @@ app.MapGet("/api/dashboard/live/{branchId}", async (int branchId) =>
     string sql = @"
     SELECT
         o.id,
-        o.order_number,
-        rt.table_no,
-        o.order_status,
+        o.table_id,
+        o.status,
         o.payment_status,
-        TIMESTAMPDIFF(SECOND,o.created_at,NOW()) AS timer_seconds,
-        o.grand_total,
-        o.created_at
-    FROM pos_orders o
-    LEFT JOIN restaurant_tables rt ON rt.id=o.table_id
-    WHERE o.branch_id=@branchId
-    AND o.order_status<>'PAID'
-    ORDER BY o.created_at ASC";
+        o.total_amount,
+        o.special_instructions,
+        o.created_at,
+        rt.table_number
+    FROM orders o
+    LEFT JOIN restaurant_tables rt
+        ON rt.id = o.table_id
+    WHERE o.branch_id = @branchId
+    AND o.is_hidden_from_table = 0
+    ORDER BY o.created_at DESC";
 
     using var cmd = new MySqlCommand(sql, con);
 
@@ -68,40 +77,44 @@ app.MapGet("/api/dashboard/live/{branchId}", async (int branchId) =>
 
     using var rdr = await cmd.ExecuteReaderAsync();
 
-    var list = new List<object>();
-
     while (await rdr.ReadAsync())
     {
         list.Add(new
         {
             id = rdr["id"],
-            orderNumber = rdr["order_number"],
-            tableNo = rdr["table_no"],
-            status = rdr["order_status"],
-            paymentStatus = rdr["payment_status"],
-            timer = rdr["timer_seconds"],
-            total = rdr["grand_total"]
+            tableNo = rdr["table_number"]?.ToString(),
+            status = rdr["status"]?.ToString(),
+            paymentStatus = rdr["payment_status"]?.ToString(),
+            total = rdr["total_amount"],
+            instructions =
+                rdr["special_instructions"]?.ToString(),
+
+            createdAt = rdr["created_at"]
         });
     }
 
     return Results.Ok(list);
 });
 
-// ============================================
-// TABLE MANAGEMENT
-// ============================================
+// ======================================================
+// DAILY REPORTS
+// ======================================================
 
-app.MapGet("/api/tables/{branchId}", async (int branchId) =>
+app.MapGet("/api/reports/daily/{branchId}", async (
+    int branchId) =>
 {
     using var con = new MySqlConnection(connStr);
 
     await con.OpenAsync();
 
     string sql = @"
-    SELECT *
-    FROM restaurant_tables
-    WHERE branch_id=@branchId
-    ORDER BY table_no";
+    SELECT
+        COUNT(*) total_orders,
+        IFNULL(SUM(total_amount),0) total_sales,
+        IFNULL(SUM(tax_amount),0) total_tax,
+        IFNULL(SUM(service_charge),0) total_service
+    FROM orders
+    WHERE branch_id = @branchId";
 
     using var cmd = new MySqlCommand(sql, con);
 
@@ -109,27 +122,82 @@ app.MapGet("/api/tables/{branchId}", async (int branchId) =>
 
     using var rdr = await cmd.ExecuteReaderAsync();
 
+    if (await rdr.ReadAsync())
+    {
+        return Results.Ok(new
+        {
+            totalOrders =
+                Convert.ToInt32(rdr["total_orders"]),
+
+            totalSales =
+                Convert.ToDecimal(rdr["total_sales"]),
+
+            totalTax =
+                Convert.ToDecimal(rdr["total_tax"]),
+
+            totalService =
+                Convert.ToDecimal(rdr["total_service"])
+        });
+    }
+
+    return Results.Ok(new
+    {
+        totalOrders = 0,
+        totalSales = 0,
+        totalTax = 0,
+        totalService = 0
+    });
+});
+
+// ======================================================
+// TABLE MANAGEMENT
+// ======================================================
+
+app.MapGet("/api/tables/{branchId}", async (
+    int branchId) =>
+{
     var list = new List<object>();
+
+    using var con = new MySqlConnection(connStr);
+
+    await con.OpenAsync();
+
+    string sql = @"
+    SELECT
+        id,
+        table_number,
+        capacity,
+        status
+    FROM restaurant_tables
+    WHERE branch_id = @branchId
+    ORDER BY table_number";
+
+    using var cmd = new MySqlCommand(sql, con);
+
+    cmd.Parameters.AddWithValue("@branchId", branchId);
+
+    using var rdr = await cmd.ExecuteReaderAsync();
 
     while (await rdr.ReadAsync())
     {
         list.Add(new
         {
             id = rdr["id"],
-            tableNo = rdr["table_no"],
-            status = rdr["status"],
-            capacity = rdr["capacity"]
+            tableNo = rdr["table_number"],
+            capacity = rdr["capacity"],
+            status = rdr["status"]
         });
     }
 
     return Results.Ok(list);
 });
 
-// ============================================
-// CREATE ORDER
-// ============================================
+// ======================================================
+// CREATE POS ORDER
+// ======================================================
 
-app.MapPost("/api/orders/create", async (CreateOrderRequest req) =>
+app.MapPost("/api/orders/create", async (
+    CreateOrderRequest req) =>
 {
     using var con = new MySqlConnection(connStr);
 
@@ -139,114 +207,147 @@ app.MapPost("/api/orders/create", async (CreateOrderRequest req) =>
 
     try
     {
-        string orderNo =
-            "ORD-" + DateTime.Now.ToString("yyyyMMddHHmmss");
-
         decimal subtotal =
             req.Items.Sum(x => x.Price * x.Quantity);
 
-        decimal gst = subtotal * 0.05m;
+        decimal tax = subtotal * 0.05m;
 
-        decimal grandTotal = subtotal + gst;
+        decimal grandTotal =
+            subtotal + tax + req.ServiceCharge;
 
         string insertOrder = @"
-        INSERT INTO pos_orders
+        INSERT INTO orders
         (
             restaurant_id,
             branch_id,
             table_id,
-            order_number,
-            order_source,
-            customer_name,
-            waiter_id,
+            status,
+            payment_status,
+            total_amount,
+            special_instructions,
             subtotal,
-            gst_amount,
-            grand_total,
-            notes
+            tax_amount,
+            service_charge,
+            created_at
         )
         VALUES
         (
             @restaurant_id,
             @branch_id,
             @table_id,
-            @order_number,
-            @order_source,
-            @customer_name,
-            @waiter_id,
+            'awaiting',
+            'unpaid',
+            @total_amount,
+            @special_instructions,
             @subtotal,
-            @gst_amount,
-            @grand_total,
-            @notes
+            @tax_amount,
+            @service_charge,
+            NOW()
         );
 
         SELECT LAST_INSERT_ID();";
 
         long orderId;
 
-        using (var cmd = new MySqlCommand(insertOrder, con, (MySqlTransaction)tran))
+        using (var cmd = new MySqlCommand(
+            insertOrder,
+            con,
+            (MySqlTransaction)tran))
         {
-            cmd.Parameters.AddWithValue("@restaurant_id", req.RestaurantId);
-            cmd.Parameters.AddWithValue("@branch_id", req.BranchId);
-            cmd.Parameters.AddWithValue("@table_id", req.TableId);
-            cmd.Parameters.AddWithValue("@order_number", orderNo);
-            cmd.Parameters.AddWithValue("@order_source", req.OrderSource);
-            cmd.Parameters.AddWithValue("@customer_name", req.CustomerName ?? "Walk In");
-            cmd.Parameters.AddWithValue("@waiter_id", req.WaiterId);
-            cmd.Parameters.AddWithValue("@subtotal", subtotal);
-            cmd.Parameters.AddWithValue("@gst_amount", gst);
-            cmd.Parameters.AddWithValue("@grand_total", grandTotal);
-            cmd.Parameters.AddWithValue("@notes", req.Notes ?? "");
+            cmd.Parameters.AddWithValue(
+                "@restaurant_id",
+                req.RestaurantId);
+
+            cmd.Parameters.AddWithValue(
+                "@branch_id",
+                req.BranchId);
+
+            cmd.Parameters.AddWithValue(
+                "@table_id",
+                req.TableId);
+
+            cmd.Parameters.AddWithValue(
+                "@total_amount",
+                grandTotal);
+
+            cmd.Parameters.AddWithValue(
+                "@special_instructions",
+                req.SpecialInstructions ?? "");
+
+            cmd.Parameters.AddWithValue(
+                "@subtotal",
+                subtotal);
+
+            cmd.Parameters.AddWithValue(
+                "@tax_amount",
+                tax);
+
+            cmd.Parameters.AddWithValue(
+                "@service_charge",
+                req.ServiceCharge);
 
             orderId =
-                Convert.ToInt64(await cmd.ExecuteScalarAsync());
+                Convert.ToInt64(
+                    await cmd.ExecuteScalarAsync());
         }
 
         foreach (var item in req.Items)
         {
             string itemSql = @"
-            INSERT INTO pos_order_items
+            INSERT INTO order_items
             (
                 order_id,
-                menu_item_id,
-                item_name,
+                item_id,
                 quantity,
-                price,
-                total,
-                special_instruction
+                price
             )
             VALUES
             (
                 @order_id,
-                @menu_item_id,
-                @item_name,
+                @item_id,
                 @quantity,
-                @price,
-                @total,
-                @special_instruction
+                @price
             )";
 
             using var itemCmd =
-                new MySqlCommand(itemSql, con, (MySqlTransaction)tran);
+                new MySqlCommand(
+                    itemSql,
+                    con,
+                    (MySqlTransaction)tran);
 
-            itemCmd.Parameters.AddWithValue("@order_id", orderId);
-            itemCmd.Parameters.AddWithValue("@menu_item_id", item.MenuItemId);
-            itemCmd.Parameters.AddWithValue("@item_name", item.ItemName);
-            itemCmd.Parameters.AddWithValue("@quantity", item.Quantity);
-            itemCmd.Parameters.AddWithValue("@price", item.Price);
-            itemCmd.Parameters.AddWithValue("@total", item.Price * item.Quantity);
-            itemCmd.Parameters.AddWithValue("@special_instruction", item.SpecialInstruction ?? "");
+            itemCmd.Parameters.AddWithValue(
+                "@order_id",
+                orderId);
+
+            itemCmd.Parameters.AddWithValue(
+                "@item_id",
+                item.ItemId);
+
+            itemCmd.Parameters.AddWithValue(
+                "@quantity",
+                item.Quantity);
+
+            itemCmd.Parameters.AddWithValue(
+                "@price",
+                item.Price);
 
             await itemCmd.ExecuteNonQueryAsync();
         }
 
-        string tableUpdate = @"
+        string updateTable = @"
         UPDATE restaurant_tables
-        SET status='AWAITING'
-        WHERE id=@table_id";
+        SET status = 'awaiting'
+        WHERE id = @tableId";
 
-        using (var tableCmd = new MySqlCommand(tableUpdate, con, (MySqlTransaction)tran))
+        using (var tableCmd =
+            new MySqlCommand(
+                updateTable,
+                con,
+                (MySqlTransaction)tran))
         {
-            tableCmd.Parameters.AddWithValue("@table_id", req.TableId);
+            tableCmd.Parameters.AddWithValue(
+                "@tableId",
+                req.TableId);
 
             await tableCmd.ExecuteNonQueryAsync();
         }
@@ -256,8 +357,7 @@ app.MapPost("/api/orders/create", async (CreateOrderRequest req) =>
         return Results.Ok(new
         {
             success = true,
-            orderId,
-            orderNo
+            orderId
         });
     }
     catch (Exception ex)
@@ -272,25 +372,31 @@ app.MapPost("/api/orders/create", async (CreateOrderRequest req) =>
     }
 });
 
-// ============================================
+// ======================================================
 // UPDATE ORDER STATUS
-// ============================================
+// ======================================================
 
-app.MapPut("/api/orders/status", async (UpdateOrderStatusRequest req) =>
+app.MapPut("/api/orders/status", async (
+    UpdateOrderStatusRequest req) =>
 {
     using var con = new MySqlConnection(connStr);
 
     await con.OpenAsync();
 
     string sql = @"
-    UPDATE pos_orders
-    SET order_status=@status
-    WHERE id=@order_id";
+    UPDATE orders
+    SET status = @status
+    WHERE id = @orderId";
 
     using var cmd = new MySqlCommand(sql, con);
 
-    cmd.Parameters.AddWithValue("@status", req.Status);
-    cmd.Parameters.AddWithValue("@order_id", req.OrderId);
+    cmd.Parameters.AddWithValue(
+        "@status",
+        req.Status);
+
+    cmd.Parameters.AddWithValue(
+        "@orderId",
+        req.OrderId);
 
     await cmd.ExecuteNonQueryAsync();
 
@@ -300,75 +406,67 @@ app.MapPut("/api/orders/status", async (UpdateOrderStatusRequest req) =>
     });
 });
 
-// ============================================
-// DAILY REPORTS
-// ============================================
+// ======================================================
+// UPDATE PAYMENT STATUS
+// ======================================================
 
-app.MapGet("/api/reports/daily/{branchId}", async (int branchId) =>
+app.MapPut("/api/orders/payment", async (
+    UpdatePaymentRequest req) =>
 {
     using var con = new MySqlConnection(connStr);
 
     await con.OpenAsync();
 
     string sql = @"
-    SELECT
-        COUNT(*) AS total_orders,
-        IFNULL(SUM(grand_total),0) AS total_sales,
-        IFNULL(SUM(gst_amount),0) AS total_tax
-    FROM pos_orders
-    WHERE branch_id=@branchId
-    AND DATE(created_at)=CURDATE()";
+    UPDATE orders
+    SET payment_status = @payment_status
+    WHERE id = @orderId";
 
     using var cmd = new MySqlCommand(sql, con);
 
-    cmd.Parameters.AddWithValue("@branchId", branchId);
+    cmd.Parameters.AddWithValue(
+        "@payment_status",
+        req.PaymentStatus);
 
-    using var rdr = await cmd.ExecuteReaderAsync();
+    cmd.Parameters.AddWithValue(
+        "@orderId",
+        req.OrderId);
 
-    if (await rdr.ReadAsync())
-    {
-        return Results.Ok(new
-        {
-            totalOrders = rdr["total_orders"],
-            totalSales = rdr["total_sales"],
-            totalTax = rdr["total_tax"]
-        });
-    }
+    await cmd.ExecuteNonQueryAsync();
 
     return Results.Ok(new
     {
-        totalOrders = 0,
-        totalSales = 0,
-        totalTax = 0
+        success = true
     });
 });
 
 app.Run();
 
-// ============================================
-// DTO MODELS
-// ============================================
+// ======================================================
+// DTOS
+// ======================================================
 
 record CreateOrderRequest(
     int RestaurantId,
     int BranchId,
     int TableId,
-    string OrderSource,
-    string? CustomerName,
-    int WaiterId,
-    string? Notes,
+    string? SpecialInstructions,
+    decimal ServiceCharge,
     List<CreateOrderItem> Items
 );
 
 record CreateOrderItem(
-    int MenuItemId,
-    string ItemName,
-    decimal Quantity,
-    decimal Price,
-    string? SpecialInstruction
+    int ItemId,
+    int Quantity,
+    decimal Price
 );
 
 record UpdateOrderStatusRequest(
-    long OrderId,
+    int OrderId,
     string Status
+);
+
+record UpdatePaymentRequest(
+    int OrderId,
+    string PaymentStatus
 );
