@@ -1,0 +1,6 @@
+@qrcafe_staff_HostAddress = http://localhost:5087
+
+GET {{qrcafe_staff_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
