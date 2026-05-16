@@ -325,7 +325,7 @@ app.MapGet("/api/reports/daily/{branchId}", async (int branchId) =>
 
 
 
-app.UseHttpsRedirection();
+
 
 app.Run();
 
