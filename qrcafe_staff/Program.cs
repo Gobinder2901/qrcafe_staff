@@ -82,12 +82,21 @@ app.MapGet("/api/dashboard/live/{branchId}", async (
         list.Add(new
         {
             id = rdr["id"],
+
+            orderNumber =
+        "ORD-" + rdr["id"]?.ToString(),
+
             tableNo = rdr["table_number"]?.ToString(),
+
             status = rdr["status"]?.ToString(),
-            paymentStatus = rdr["payment_status"]?.ToString(),
+
+            paymentStatus =
+        rdr["payment_status"]?.ToString(),
+
             total = rdr["total_amount"],
+
             instructions =
-                rdr["special_instructions"]?.ToString(),
+        rdr["special_instructions"]?.ToString(),
 
             createdAt = rdr["created_at"]
         });
