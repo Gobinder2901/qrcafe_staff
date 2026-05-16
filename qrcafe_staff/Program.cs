@@ -3,7 +3,9 @@ using System.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+// ============================================
+// CORS
+// ============================================
 
 builder.Services.AddCors(options =>
 {
@@ -41,6 +43,7 @@ app.MapGet("/api/health", () =>
 app.MapGet("/api/dashboard/live/{branchId}", async (int branchId) =>
 {
     using var con = new MySqlConnection(connStr);
+
     await con.OpenAsync();
 
     string sql = @"
@@ -60,6 +63,7 @@ app.MapGet("/api/dashboard/live/{branchId}", async (int branchId) =>
     ORDER BY o.created_at ASC";
 
     using var cmd = new MySqlCommand(sql, con);
+
     cmd.Parameters.AddWithValue("@branchId", branchId);
 
     using var rdr = await cmd.ExecuteReaderAsync();
@@ -90,6 +94,7 @@ app.MapGet("/api/dashboard/live/{branchId}", async (int branchId) =>
 app.MapGet("/api/tables/{branchId}", async (int branchId) =>
 {
     using var con = new MySqlConnection(connStr);
+
     await con.OpenAsync();
 
     string sql = @"
@@ -99,6 +104,7 @@ app.MapGet("/api/tables/{branchId}", async (int branchId) =>
     ORDER BY table_no";
 
     using var cmd = new MySqlCommand(sql, con);
+
     cmd.Parameters.AddWithValue("@branchId", branchId);
 
     using var rdr = await cmd.ExecuteReaderAsync();
@@ -126,16 +132,21 @@ app.MapGet("/api/tables/{branchId}", async (int branchId) =>
 app.MapPost("/api/orders/create", async (CreateOrderRequest req) =>
 {
     using var con = new MySqlConnection(connStr);
+
     await con.OpenAsync();
 
     using var tran = await con.BeginTransactionAsync();
 
     try
     {
-        string orderNo = "ORD-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+        string orderNo =
+            "ORD-" + DateTime.Now.ToString("yyyyMMddHHmmss");
 
-        decimal subtotal = req.Items.Sum(x => x.Price * x.Quantity);
+        decimal subtotal =
+            req.Items.Sum(x => x.Price * x.Quantity);
+
         decimal gst = subtotal * 0.05m;
+
         decimal grandTotal = subtotal + gst;
 
         string insertOrder = @"
@@ -186,7 +197,8 @@ app.MapPost("/api/orders/create", async (CreateOrderRequest req) =>
             cmd.Parameters.AddWithValue("@grand_total", grandTotal);
             cmd.Parameters.AddWithValue("@notes", req.Notes ?? "");
 
-            orderId = Convert.ToInt64(await cmd.ExecuteScalarAsync());
+            orderId =
+                Convert.ToInt64(await cmd.ExecuteScalarAsync());
         }
 
         foreach (var item in req.Items)
@@ -213,7 +225,8 @@ app.MapPost("/api/orders/create", async (CreateOrderRequest req) =>
                 @special_instruction
             )";
 
-            using var itemCmd = new MySqlCommand(itemSql, con, (MySqlTransaction)tran);
+            using var itemCmd =
+                new MySqlCommand(itemSql, con, (MySqlTransaction)tran);
 
             itemCmd.Parameters.AddWithValue("@order_id", orderId);
             itemCmd.Parameters.AddWithValue("@menu_item_id", item.MenuItemId);
@@ -234,6 +247,7 @@ app.MapPost("/api/orders/create", async (CreateOrderRequest req) =>
         using (var tableCmd = new MySqlCommand(tableUpdate, con, (MySqlTransaction)tran))
         {
             tableCmd.Parameters.AddWithValue("@table_id", req.TableId);
+
             await tableCmd.ExecuteNonQueryAsync();
         }
 
@@ -265,6 +279,7 @@ app.MapPost("/api/orders/create", async (CreateOrderRequest req) =>
 app.MapPut("/api/orders/status", async (UpdateOrderStatusRequest req) =>
 {
     using var con = new MySqlConnection(connStr);
+
     await con.OpenAsync();
 
     string sql = @"
@@ -286,24 +301,26 @@ app.MapPut("/api/orders/status", async (UpdateOrderStatusRequest req) =>
 });
 
 // ============================================
-// SALES REPORT
+// DAILY REPORTS
 // ============================================
 
 app.MapGet("/api/reports/daily/{branchId}", async (int branchId) =>
 {
     using var con = new MySqlConnection(connStr);
+
     await con.OpenAsync();
 
     string sql = @"
     SELECT
         COUNT(*) AS total_orders,
-        SUM(grand_total) AS total_sales,
-        SUM(gst_amount) AS total_tax
+        IFNULL(SUM(grand_total),0) AS total_sales,
+        IFNULL(SUM(gst_amount),0) AS total_tax
     FROM pos_orders
     WHERE branch_id=@branchId
     AND DATE(created_at)=CURDATE()";
 
     using var cmd = new MySqlCommand(sql, con);
+
     cmd.Parameters.AddWithValue("@branchId", branchId);
 
     using var rdr = await cmd.ExecuteReaderAsync();
@@ -318,15 +335,13 @@ app.MapGet("/api/reports/daily/{branchId}", async (int branchId) =>
         });
     }
 
-    return Results.Ok();
+    return Results.Ok(new
+    {
+        totalOrders = 0,
+        totalSales = 0,
+        totalTax = 0
+    });
 });
-
-
-
-
-
-
-
 
 app.Run();
 
